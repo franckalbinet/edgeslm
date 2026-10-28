@@ -1,0 +1,11 @@
+website:
+  sidebar:
+    contents:
+      - text: "Overview"
+        href: index.ipynb
+      - section: "Design"
+        contents:
+          - design/scope.ipynb
+      - section: "API reference"
+        contents:
+          - 00_core.ipynb
