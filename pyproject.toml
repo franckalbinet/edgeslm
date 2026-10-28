@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edgeslm"
+dynamic = ["version"]
+description = "Small language models for narrow, domain-specific tasks at the edge: synthetic data, LoRA fine-tuning, evaluation and GGUF export"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "Apache-2.0"
+authors = [{name = "Franck Albinet", email = "franckalbinet@gmail.com"}]
+keywords = ['nbdev']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/franckalbinet/edgeslm"
+Documentation = "https://franckalbinet.github.io/edgeslm/"
+
+[project.entry-points.nbdev]
+edgeslm = "edgeslm._modidx:d"
+
+[tool.setuptools.dynamic]
+version = {attr = "edgeslm.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["edgeslm"]
+
+[tool.nbdev]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+]

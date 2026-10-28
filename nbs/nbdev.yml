@@ -1,0 +1,14 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "edgeslm"
+  site-url: "https://franckalbinet.github.io/edgeslm"
+  description: "Small language models for narrow, domain-specific tasks at the edge: synthetic data, LoRA fine-tuning, evaluation and GGUF export"
+  repo-branch: main
+  repo-url: "https://github.com/franckalbinet/edgeslm"
+
+format-links:
+  - html
+  - format: commonmark
+    text: Markdown
