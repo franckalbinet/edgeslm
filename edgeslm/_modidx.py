@@ -5,4 +5,9 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://franckalbinet.github.io',
                 'git_url': 'https://github.com/franckalbinet/edgeslm',
                 'lib_path': 'edgeslm'},
-  'syms': {'edgeslm.core': {'edgeslm.core.foo': ('core.html#foo', 'edgeslm/core.py')}}}
+  'syms': { 'edgeslm.coffee': { 'edgeslm.coffee._free': ('coffee.html#_free', 'edgeslm/coffee.py'),
+                                'edgeslm.coffee._item': ('coffee.html#_item', 'edgeslm/coffee.py'),
+                                'edgeslm.coffee.layout': ('coffee.html#layout', 'edgeslm/coffee.py'),
+                                'edgeslm.coffee.triage': ('coffee.html#triage', 'edgeslm/coffee.py')},
+            'edgeslm.synth': { 'edgeslm.synth.sample': ('synth.html#sample', 'edgeslm/synth.py'),
+                               'edgeslm.synth.tuples': ('synth.html#tuples', 'edgeslm/synth.py')}}}

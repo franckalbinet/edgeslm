@@ -8,4 +8,5 @@ website:
           - design/scope.ipynb
       - section: "API reference"
         contents:
-          - 00_core.ipynb
+          - 00_synth.ipynb
+          - 01_coffee.ipynb
