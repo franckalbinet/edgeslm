@@ -36,4 +36,5 @@ custom_sidebar = true
 [dependency-groups]
 dev = [
     "ipykernel>=7.4.0",
+    "nbdev>=3.3.27",
 ]
