@@ -36,7 +36,11 @@ A message for this record could read:
 
 ## Status
 
-The project is building a proof of concept for the first task. The scope, the tuple sampler and the synthetic triage records are done. The next step is teacher messages: Claude writes the message for each triage record.
+The project is building a proof of concept for the first task. The scope, the synthetic triage records, the code checks, the teacher prompt and the training data are done. Claude Haiku wrote the training messages.
+
+The [baseline](https://franckalbinet.github.io/edgeslm/baseline.html) and [fine-tuning](https://franckalbinet.github.io/edgeslm/finetune.html) experiments compare Qwen3.5 0.8B and 2B on 270 test records. Untuned, with rules and two examples in the prompt, they write messages that pass every check for 123 and 70 records. Fine-tuned on 100 examples, with a one-line prompt, both pass for 255 or more. The 0.8B fine-tuned on 199 examples passes for 264.
+
+The next step is to convert the fine-tuned 0.8B to GGUF and run it with llama.cpp on an Arduino UNO Q, to measure speed, memory and quality on the board.
 
 ## Install
 
