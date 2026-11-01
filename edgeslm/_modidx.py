@@ -17,4 +17,5 @@ d = { 'settings': { 'branch': 'main',
             'edgeslm.synth': { 'edgeslm.synth.sample': ('synth.html#sample', 'edgeslm/synth.py'),
                                'edgeslm.synth.tuples': ('synth.html#tuples', 'edgeslm/synth.py')},
             'edgeslm.teacher': { 'edgeslm.teacher.system_prompt': ('teacher.html#system_prompt', 'edgeslm/teacher.py'),
+                                 'edgeslm.teacher.teach': ('teacher.html#teach', 'edgeslm/teacher.py'),
                                  'edgeslm.teacher.user_prompt': ('teacher.html#user_prompt', 'edgeslm/teacher.py')}}}
