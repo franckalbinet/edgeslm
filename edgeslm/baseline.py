@@ -12,7 +12,6 @@ __all__ = ['STUDENT_EXAMPLES', 'student_prompt', 'student_version', 'student_inp
 import json, hashlib
 from collections import Counter
 from IPython.display import Markdown
-from mlx_lm import load, generate
 from .teacher import CONTEXT, RULES, EXAMPLES, user_prompt
 from .checks import check, parse
 from .dataset import read_jsonl, write_jsonl
@@ -47,6 +46,7 @@ def run_model(
     max_tokens:int=400, # Longest message to generate
 )->list: # One row per input, with the message, its checks and the run's settings
     "Have `model_id` write and check a message for each row"
+    from mlx_lm import load, generate  # mlx installs only on macOS, so importing it here keeps the module importable in CI
     model, tok = load(model_id, adapter_path=adapter_path)
     out = []
     for r in rows:
