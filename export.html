@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Merge a LoRA adapter into the original Qwen3.5 checkpoint, convert it to GGUF for llama.cpp, and score the quantized files">
+
+<title>Export – edgeslm</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-17888a1159294d3eb470f19f6f52f5a5.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-4a0132d6516ed1437d66c2742ecec8d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Export – edgeslm">
+<meta property="og:description" content="Merge a LoRA adapter into the original Qwen3.5 checkpoint, convert it to GGUF for llama.cpp, and score the quantized files">
+<meta property="og:site_name" content="edgeslm">
+<meta name="twitter:title" content="Export – edgeslm">
+<meta name="twitter:description" content="Merge a LoRA adapter into the original Qwen3.5 checkpoint, convert it to GGUF for llama.cpp, and score the quantized files">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">edgeslm</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./baseline.html">Experiments</a></li><li class="breadcrumb-item"><a href="./export.html">Export</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./design/scope.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scope</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">API reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./synth.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Synthetic data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./coffee.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coffee water stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./checks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Message checks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./teacher.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Teacher prompt</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Dataset</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Experiments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./baseline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Baseline</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./finetune.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fine-tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./export.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Export</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#merging-the-adapter" id="toc-merging-the-adapter" class="nav-link active" data-scroll-target="#merging-the-adapter">Merging the adapter</a></li>
+  <li><a href="#scoring-with-llama.cpp" id="toc-scoring-with-llama.cpp" class="nav-link" data-scroll-target="#scoring-with-llama.cpp">Scoring with llama.cpp</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
+  <li><a href="#running-on-the-uno-q" id="toc-running-on-the-uno-q" class="nav-link" data-scroll-target="#running-on-the-uno-q">Running on the UNO Q</a>
+  <ul class="collapse">
+  <li><a href="#scoring-all-test-records-on-the-board" id="toc-scoring-all-test-records-on-the-board" class="nav-link" data-scroll-target="#scoring-all-test-records-on-the-board">Scoring all test records on the board</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/edgeslm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="export.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./baseline.html">Experiments</a></li><li class="breadcrumb-item"><a href="./export.html">Export</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Export</h1>
+</div>
+
+<div>
+  <div class="description">
+    Merge a LoRA adapter into the original Qwen3.5 checkpoint, convert it to GGUF for llama.cpp, and score the quantized files
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>The Arduino UNO Q runs models with <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a>, which loads GGUF files. This notebook turns the fine-tuned Qwen3.5 0.8B from <a href="./finetune.html">Fine-tuning</a>, trained on 199 examples, into GGUF files at 8 and 4 bits, and scores each one on the test set through llama.cpp. The scores must match the MLX model’s before a file goes to the board.</p>
+<section id="merging-the-adapter" class="level2">
+<h2 class="anchored" data-anchor-id="merging-the-adapter">Merging the adapter</h2>
+<p>mlx-lm’s own GGUF export supports only Llama, Mistral and Mixtral models, so the GGUF file comes from llama.cpp’s converter, <code>convert_hf_to_gguf.py</code>. The converter reads checkpoints in the Hugging Face layout. The mlx-community checkpoint we trained on is not in that layout: its tensor names start with <code>language_model.model.</code> instead of <code>model.language_model.</code>, its vision encoder is removed, and its convolution weights are transposed.</p>
+<p>The adapter changes only linear projections, and the base weights of those 124 projections are identical in the two checkpoints. <a href="https://franckalbinet.github.io/edgeslm/export.html#fuse_lora"><code>fuse_lora</code></a> therefore merges the adapter into the original <code>Qwen/Qwen3.5-0.8B</code> checkpoint. It renames each adapted layer and adds <code>scale · Bᵀ·Aᵀ</code> to its weight, the formula mlx-lm uses when it fuses. The other files of the checkpoint are copied unchanged:</p>
+<div id="1bf03a07" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-01T21:37:39.923393+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-01T21:37:39.933326+00:00&quot;,&quot;total&quot;:0.009938449999999932}}" data-execution_count="3">
+<hr>
+<p><a href="https://github.com/franckalbinet/edgeslm/blob/main/edgeslm/export.py#L19" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="fuse_lora" class="level3">
+<h3 class="anchored" data-anchor-id="fuse_lora">fuse_lora</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fuse_lora(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    base:<span class="bu">str</span>, <span class="co"># Directory of the original Hugging Face checkpoint</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    adapters:<span class="bu">str</span>, <span class="co"># Directory of the mlx-lm adapters</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    out:<span class="bu">str</span>, <span class="co"># Directory for the merged checkpoint</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pathlib._local.Path:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Merge mlx-lm LoRA adapters into a Hugging Face checkpoint</em></p>
+</section>
+</div>
+<p>We checked the merge by loading the merged checkpoint with mlx-lm: it wrote the same messages as the adapter for the first three test records.</p>
+<p>This cell merged the adapter and converted the result. It needs the <code>export</code> extra (<code>pip install -e '.[export]'</code>), llama.cpp’s command-line tools (<code>brew install llama.cpp</code>, version 0.8.0 here) and a checkout of llama.cpp at the same commit for <code>convert_hf_to_gguf.py</code>, and does not run in tests:</p>
+<div id="853989c7" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> subprocess, sys</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> huggingface_hub <span class="im">import</span> snapshot_download</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>LLAMA_CPP <span class="op">=</span> Path(<span class="st">'~/pro/dev/llama.cpp'</span>).expanduser()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>run <span class="op">=</span> Path(<span class="st">'../models/qwen3.5-0.8b-n199'</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>hf <span class="op">=</span> fuse_lora(snapshot_download(<span class="st">'Qwen/Qwen3.5-0.8B'</span>), run<span class="op">/</span><span class="st">'adapters'</span>, run<span class="op">/</span><span class="st">'hf'</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>gguf <span class="op">=</span> run<span class="op">/</span><span class="st">'gguf'</span><span class="op">;</span> gguf.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>bf16 <span class="op">=</span> gguf<span class="op">/</span><span class="st">'qwen3.5-0.8b-edgeslm-bf16.gguf'</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>subprocess.run([sys.executable, LLAMA_CPP<span class="op">/</span><span class="st">'convert_hf_to_gguf.py'</span>, hf, <span class="st">'--outtype'</span>, <span class="st">'bf16'</span>, <span class="st">'--outfile'</span>, bf16], env<span class="op">=</span>{<span class="st">'PYTHONPATH'</span>: <span class="bu">str</span>(LLAMA_CPP<span class="op">/</span><span class="st">'gguf-py'</span>)}, check<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> q <span class="kw">in</span> (<span class="st">'Q8_0'</span>, <span class="st">'Q4_K_M'</span>): subprocess.run([<span class="st">'llama-quantize'</span>, bf16, gguf<span class="op">/</span><span class="ss">f'qwen3.5-0.8b-edgeslm-</span><span class="sc">{</span>q<span class="sc">}</span><span class="ss">.gguf'</span>, q], check<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="scoring-with-llama.cpp" class="level2">
+<h2 class="anchored" data-anchor-id="scoring-with-llama.cpp">Scoring with llama.cpp</h2>
+<p><a href="https://franckalbinet.github.io/edgeslm/export.html#score_gguf"><code>score_gguf</code></a> sends each test record to a running <code>llama-server</code> and checks the message. It builds the prompt with <a href="https://franckalbinet.github.io/edgeslm/baseline.html#student_input"><code>student_input</code></a>, the same chat-formatted string the MLX runs used, and decodes greedily. Any change in score therefore comes from llama.cpp and the quantization. Each row also keeps llama.cpp’s token counts and timings:</p>
+<div id="8d36cc84" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-01T21:37:39.935488+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-01T21:37:39.940056+00:00&quot;,&quot;total&quot;:0.004572201000001996}}" data-execution_count="5">
+<hr>
+<p><a href="https://github.com/franckalbinet/edgeslm/blob/main/edgeslm/export.py#L43" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="score_gguf" class="level3">
+<h3 class="anchored" data-anchor-id="score_gguf">score_gguf</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> score_gguf(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># Address of a running `llama-server`</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    rows:<span class="bu">list</span>, <span class="co"># Test rows with `id`, `tuple` and `record`</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    tok, <span class="co"># The model's tokenizer, to build the chat-formatted prompt</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    name:<span class="bu">str</span>, <span class="co"># Name of the GGUF file, saved in each row</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    n_par:<span class="bu">int</span><span class="op">=</span><span class="dv">4</span>, <span class="co"># Requests in flight at once</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    max_tokens:<span class="bu">int</span><span class="op">=</span><span class="dv">400</span>, <span class="co"># Longest message to generate</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># One row per input, with the message, its checks and llama.cpp's timings</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Have a llama.cpp server write and check a message for each row</em></p>
+</section>
+</div>
+<p>This cell scored each file, with <code>llama-server -m &lt;file&gt; --port 8091 -c 4096 -np 4</code> running in a terminal. It does not run in tests:</p>
+<div id="9b959a60" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> AutoTokenizer</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> edgeslm.dataset <span class="im">import</span> read_jsonl, write_jsonl</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> read_jsonl(<span class="st">'../data/test-v1.jsonl'</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>tok <span class="op">=</span> AutoTokenizer.from_pretrained(<span class="st">'../models/qwen3.5-0.8b-n199/hf'</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> <span class="st">'Q4_K_M'</span>  <span class="co"># restart the server with each file, then set q to match</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>write_jsonl(<span class="ss">f'../data/gguf-v1-qwen3.5-0.8b-n199-</span><span class="sc">{</span>q<span class="sc">}</span><span class="ss">.jsonl'</span>, <span class="cf">await</span> score_gguf(<span class="st">'http://localhost:8091'</span>, test, tok, <span class="ss">f'qwen3.5-0.8b-edgeslm-</span><span class="sc">{</span>q<span class="sc">}</span><span class="ss">.gguf'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<div id="eed8ecb4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-01T21:37:39.940376+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-01T21:37:39.941125+00:00&quot;,&quot;total&quot;:0.0007530479999999784}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> edgeslm.dataset <span class="im">import</span> read_jsonl</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> edgeslm.baseline <span class="im">import</span> score_table, markers</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The MLX model in bf16 and the two GGUF files, scored on the same 270 test records:</p>
+<div id="c7815bf9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> read_jsonl(<span class="st">'../data/test-v1.jsonl'</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>runs <span class="op">=</span> {<span class="st">'MLX bf16'</span>: read_jsonl(<span class="st">'../data/finetune-v1-qwen3.5-0.8b-n199.jsonl'</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">**</span>{<span class="ss">f'GGUF </span><span class="sc">{</span>q<span class="sc">}</span><span class="ss">'</span>: read_jsonl(<span class="ss">f'../data/gguf-v1-qwen3.5-0.8b-n199-</span><span class="sc">{</span>q<span class="sc">}</span><span class="ss">.jsonl'</span>) <span class="cf">for</span> q <span class="kw">in</span> (<span class="st">'Q8_0'</span>, <span class="st">'Q4_K_M'</span>)}}</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>score_table(runs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Check</th>
+<th>MLX bf16</th>
+<th>GGUF Q8_0</th>
+<th>GGUF Q4_K_M</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>all</td>
+<td>264 / 270</td>
+<td>264 / 270</td>
+<td>264 / 270</td>
+</tr>
+<tr class="even">
+<td>format</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+<tr class="odd">
+<td>coverage</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+<tr class="even">
+<td>no_invented</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+<tr class="odd">
+<td>severity</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+<tr class="even">
+<td>no_numbers</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+<tr class="odd">
+<td>length</td>
+<td>264 / 270</td>
+<td>264 / 270</td>
+<td>264 / 270</td>
+</tr>
+<tr class="even">
+<td>amount</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+<td>270 / 270</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Quantization costs no checks. The changed messages we read differ in wording only, such as “no longer sees its leaves” for “has not seen its leaves”. The number of messages identical to the MLX model’s shows how many changed:</p>
+<div id="8a206dd2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>{k: <span class="bu">sum</span>(a[<span class="st">'message'</span>] <span class="op">==</span> b[<span class="st">'message'</span>] <span class="cf">for</span> a, b <span class="kw">in</span> <span class="bu">zip</span>(v, runs[<span class="st">'MLX bf16'</span>])) <span class="cf">for</span> k, v <span class="kw">in</span> runs.items()}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<pre><code>{'MLX bf16': 270, 'GGUF Q8_0': 265, 'GGUF Q4_K_M': 251}</code></pre>
+</div>
+</div>
+<p>The 4-bit file also writes the right marker for every item:</p>
+<div id="0ecbbdc3" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>markers(runs[<span class="st">'GGUF Q4_K_M'</span>], test)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<pre><code>Counter({('early', '👀'): 209, ('moderate', '⚠️'): 148, ('severe', '🚨'): 112})</code></pre>
+</div>
+</div>
+<p>The 4-bit file is 542 MB, against 834 MB for 8 bits and 1.56 GB for bf16. It scores as well as the others, so it is the file for the UNO Q. Speed and memory on the board are still to be measured.</p>
+</section>
+<section id="running-on-the-uno-q" class="level2">
+<h2 class="anchored" data-anchor-id="running-on-the-uno-q">Running on the UNO Q</h2>
+<p>The colleague with the board needs llama.cpp built on it, the 4-bit file <code>qwen3.5-0.8b-edgeslm-Q4_K_M.gguf</code>, and the folder <code>data/uno-q</code> from this repo. The folder holds three test prompts, <code>prompt-N.txt</code>, already in the model’s chat format, and the 4-bit file’s message for each, <code>expected-N.txt</code>. This cell wrote them, and does not run in tests:</p>
+<div id="8b6dedea" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>q4 <span class="op">=</span> read_jsonl(<span class="st">'../data/gguf-v1-qwen3.5-0.8b-n199-Q4_K_M.jsonl'</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    Path(<span class="ss">f'../data/uno-q/prompt-</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">.txt'</span>).write_text(student_input(tok, test[i][<span class="st">'record'</span>], SHORT_PROMPT))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    Path(<span class="ss">f'../data/uno-q/expected-</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">.txt'</span>).write_text(q4[i][<span class="st">'message'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The steps below run on the board. First, build llama.cpp at the version used here (0.8.0) on the board’s Debian:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install git cmake build-essential time</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/ggml-org/llama.cpp <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> llama.cpp</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> checkout 8642541b2</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-B</span> build <span class="kw">&amp;&amp;</span> <span class="fu">cmake</span> <span class="at">--build</span> build <span class="at">--config</span> Release <span class="at">-j</span> 4</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The tools are in <code>build/bin</code>. Copy the GGUF file and the <code>uno-q</code> folder next to them, then run each step from <code>build/bin</code>.</p>
+<p><strong>Check the download.</strong> The checksum must match before anything else:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sha256sum</span> qwen3.5-0.8b-edgeslm-Q4_K_M.gguf</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 4f283f2f87413fe1c3cdb83f226c8cdf3c31eae7dc456c268a702ba0a7c63769</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A different value means the download is incomplete or the file has changed. Download it again.</p>
+<p><strong>Write a message.</strong> This writes the message for the first test prompt with greedy decoding, as the scoring did:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./llama-completion</span> <span class="at">-m</span> qwen3.5-0.8b-edgeslm-Q4_K_M.gguf <span class="at">-f</span> uno-q/prompt-0.txt <span class="at">-n</span> 400 <span class="at">--temp</span> 0 <span class="at">--top-k</span> 1 <span class="at">-no-cnv</span> <span class="at">--no-display-prompt</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The output ends with <code>[end of text]</code>. Compare the text before it with <code>uno-q/expected-0.txt</code>. On a Mac it is identical. The board computes on a different processor, so a few words can change. A different marker, location or number of paragraphs is a real problem: report it.</p>
+<p><strong>Measure speed.</strong> Test prompts average 168 tokens and messages 71, so benchmark those sizes on the four cores:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./llama-bench</span> <span class="at">-m</span> qwen3.5-0.8b-edgeslm-Q4_K_M.gguf <span class="at">-p</span> 168 <span class="at">-n</span> 71 <span class="at">-t</span> 4</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The table gives tokens per second for reading the prompt (<code>pp168</code>) and for writing the message (<code>tg71</code>). The time for one message is about 168 ÷ pp168 + 71 ÷ tg71 seconds.</p>
+<p><strong>Measure memory.</strong> Run the first step under GNU <code>time</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/usr/bin/time</span> <span class="at">-v</span> ./llama-completion <span class="at">-m</span> qwen3.5-0.8b-edgeslm-Q4_K_M.gguf <span class="at">-f</span> uno-q/prompt-0.txt <span class="at">-n</span> 400 <span class="at">--temp</span> 0 <span class="at">--top-k</span> 1 <span class="at">-no-cnv</span> <span class="at">--no-display-prompt</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The line <code>Maximum resident set size</code> gives the peak memory in kilobytes.</p>
+<p>Send back the three outputs, the <code>llama-bench</code> table and the peak memory.</p>
+<section id="scoring-all-test-records-on-the-board" class="level3">
+<h3 class="anchored" data-anchor-id="scoring-all-test-records-on-the-board">Scoring all test records on the board</h3>
+<p>The scope requires final scores measured on the target board. If a computer with this repo can reach the board over the network, the colleague starts a server on the board:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./llama-server</span> <span class="at">-m</span> qwen3.5-0.8b-edgeslm-Q4_K_M.gguf <span class="at">--host</span> 0.0.0.0 <span class="at">--port</span> 8091 <span class="at">-c</span> 4096</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>On the computer, run the scoring cell above with the board’s address, <code>http://&lt;board-ip&gt;:8091</code>, and <code>n_par=1</code>, so that each timing measures one message on its own. Each row then holds the board’s timings for that message. We have not run this yet.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const cellDetails = window.document.querySelectorAll(".cell details.code-fold");
+        for (let i=0; i<cellDetails.length; i++) {
+          const details = cellDetails[i];
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell div.sourceCode.cell-code");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/franckalbinet\.github\.io\/edgeslm");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/franckalbinet/edgeslm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

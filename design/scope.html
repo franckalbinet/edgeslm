@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="The approach of edgeslm, and the decisions we make as we refine it">
+
+<title>Scope – edgeslm</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-17888a1159294d3eb470f19f6f52f5a5.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-4a0132d6516ed1437d66c2742ecec8d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="Scope – edgeslm">
+<meta property="og:description" content="The approach of edgeslm, and the decisions we make as we refine it">
+<meta property="og:site_name" content="edgeslm">
+<meta name="twitter:title" content="Scope – edgeslm">
+<meta name="twitter:description" content="The approach of edgeslm, and the decisions we make as we refine it">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">edgeslm</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../design/scope.html">Design</a></li><li class="breadcrumb-item"><a href="../design/scope.html">Scope</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../design/scope.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Scope</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">API reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../synth.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Synthetic data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../coffee.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coffee water stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../checks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Message checks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teacher.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Teacher prompt</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Dataset</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Experiments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../baseline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Baseline</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../finetune.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fine-tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../export.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Export</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#problem-and-framing" id="toc-problem-and-framing" class="nav-link active" data-scroll-target="#problem-and-framing">Problem and framing</a>
+  <ul class="collapse">
+  <li><a href="#the-first-task" id="toc-the-first-task" class="nav-link" data-scroll-target="#the-first-task">The first task</a></li>
+  <li><a href="#language" id="toc-language" class="nav-link" data-scroll-target="#language">Language</a></li>
+  <li><a href="#hardware" id="toc-hardware" class="nav-link" data-scroll-target="#hardware">Hardware</a></li>
+  </ul></li>
+  <li><a href="#pipeline" id="toc-pipeline" class="nav-link" data-scroll-target="#pipeline">Pipeline</a>
+  <ul class="collapse">
+  <li><a href="#choice-of-teacher" id="toc-choice-of-teacher" class="nav-link" data-scroll-target="#choice-of-teacher">Choice of teacher</a></li>
+  </ul></li>
+  <li><a href="#synthetic-data-generation" id="toc-synthetic-data-generation" class="nav-link" data-scroll-target="#synthetic-data-generation">Synthetic data generation</a></li>
+  <li><a href="#triage-contract" id="toc-triage-contract" class="nav-link" data-scroll-target="#triage-contract">Triage contract</a>
+  <ul class="collapse">
+  <li><a href="#fields" id="toc-fields" class="nav-link" data-scroll-target="#fields">Fields</a></li>
+  <li><a href="#rules" id="toc-rules" class="nav-link" data-scroll-target="#rules">Rules</a></li>
+  </ul></li>
+  <li><a href="#domain-expert-annotators" id="toc-domain-expert-annotators" class="nav-link" data-scroll-target="#domain-expert-annotators">Domain expert annotators</a></li>
+  <li><a href="#evaluation" id="toc-evaluation" class="nav-link" data-scroll-target="#evaluation">Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#checks-computed-by-code" id="toc-checks-computed-by-code" class="nav-link" data-scroll-target="#checks-computed-by-code">Checks computed by code</a></li>
+  <li><a href="#judges-for-the-other-failure-modes" id="toc-judges-for-the-other-failure-modes" class="nav-link" data-scroll-target="#judges-for-the-other-failure-modes">Judges for the other failure modes</a></li>
+  </ul></li>
+  <li><a href="#proof-of-concept" id="toc-proof-of-concept" class="nav-link" data-scroll-target="#proof-of-concept">Proof of concept</a></li>
+  <li><a href="#after-the-proof-of-concept" id="toc-after-the-proof-of-concept" class="nav-link" data-scroll-target="#after-the-proof-of-concept">After the proof of concept</a>
+  <ul class="collapse">
+  <li><a href="#the-triage-track" id="toc-the-triage-track" class="nav-link" data-scroll-target="#the-triage-track">The triage track</a></li>
+  <li><a href="#the-message-track" id="toc-the-message-track" class="nav-link" data-scroll-target="#the-message-track">The message track</a></li>
+  </ul></li>
+  <li><a href="#terms" id="toc-terms" class="nav-link" data-scroll-target="#terms">Terms</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/edgeslm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="scope.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../design/scope.html">Design</a></li><li class="breadcrumb-item"><a href="../design/scope.html">Scope</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Scope</h1>
+</div>
+
+<div>
+  <div class="description">
+    The approach of edgeslm, and the decisions we make as we refine it
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>edgeslm fine-tunes small language models (SLMs) for narrow tasks and runs them on edge hardware. This page describes the approach through its first task: short WhatsApp messages that tell coffee farmers which plants are short of water and which sensors need fixing. It is a working document, and its sections change as we refine the approach.</p>
+<section id="problem-and-framing" class="level2">
+<h2 class="anchored" data-anchor-id="problem-and-framing">Problem and framing</h2>
+<p>A large hosted model can already do an expert’s analysis. In the <a href="https://fr.anckalbi.net/speaking-plants/batches/b02/diagnosis.html">batch 2 diagnosis</a> of speaking-plants, Claude found the water-stressed plant from the sensor logs, much as a plant physiologist would. Using such a model for every message in the field has costs:</p>
+<ul>
+<li>every call costs money and energy,</li>
+<li>farm data leaves the farm,</li>
+<li>the service depends on a provider, and on the network at the moment of the call,</li>
+<li>a narrow, repeated task uses only a small part of the model’s expertise.</li>
+</ul>
+<p>edgeslm takes the other route: a small model, fine-tuned for one narrow task, that runs on a board on the farm. The model is like a chip that holds one slice of domain expertise. The pipeline that builds it is domain-neutral: a task is defined by data, namely its input format, its output format and its examples.</p>
+<section id="the-first-task" class="level3">
+<h3 class="anchored" data-anchor-id="the-first-task">The first task</h3>
+<p>The first task comes from <a href="https://fr.anckalbi.net/speaking-plants/">speaking-plants</a>, which detects water stress in coffee plants with thermal cameras, soil moisture sensors and an air sensor. Sensors are costly to run, so only some plants carry a sensor node: a farm can have dozens of nodes, each standing for the plants around it. The task has two parts:</p>
+<ul>
+<li><strong>Triage, in code.</strong> Feature engineering and a classical ML model decide, for one farm and one day, which nodes to watch or fix, how severe each case is, and what the data shows about its cause, such as whether water still reaches the soil. This part belongs to the domain project, not to edgeslm.</li>
+<li><strong>The message, by the SLM.</strong> The model turns the triage into a short WhatsApp message to the farmer.</li>
+</ul>
+<p>Deciding what is critical is the code’s job. Saying it clearly, with an action, is the model’s job.</p>
+<p>The message follows these rules:</p>
+<ul>
+<li>It covers only the nodes to watch or fix. When nothing is critical, nothing is sent.</li>
+<li>It says what to do, such as watering or maintenance. It gives no measurements or counts: a value such as a leaf-to-air temperature difference means little to a farmer as an absolute number, and the engineered features and the ML model already capture the signal. A count of flagged nodes would mislead too, because only some plants are monitored and a problem on a shared line usually reaches the plants between them.</li>
+<li>It covers two kinds of problem: water stress, and equipment faults such as a failed sensor or a silent node.</li>
+<li>Each item is one paragraph: its severity marker, its location exactly as in the triage, a colon, then what is wrong and what to do. The markers are 👀 early, ⚠️ moderate and 🚨 severe. Later mentions use words such as “the line” or “its dripper”, not the location again.</li>
+<li>Its paragraphs follow the triage’s order, most severe first, and say when each problem started with the triage’s phrase, such as since today, since Tuesday or for a week or more. It never gives a date.</li>
+<li>It is at most 600 characters long, so that it fits on a phone screen.</li>
+<li>It is sent in the evening or early in the morning, before irrigation. Water stress shows most clearly in the afternoon.</li>
+</ul>
+<p>Here is a sketch of one triage output and its message, for an invented farm with 40 sensor nodes. The triage contract, below, defines its fields and rules:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"farm"</span><span class="fu">:</span> <span class="st">"fazenda-exemplo"</span><span class="fu">,</span> <span class="dt">"date"</span><span class="fu">:</span> <span class="st">"2026-10-08"</span><span class="fu">,</span> <span class="dt">"nodes"</span><span class="fu">:</span> <span class="dv">40</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"items"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"problem"</span><span class="fu">:</span> <span class="st">"water stress"</span><span class="fu">,</span> <span class="dt">"location"</span><span class="fu">:</span> <span class="st">"Block B, drip line B2"</span><span class="fu">,</span> <span class="dt">"pattern"</span><span class="fu">:</span> <span class="st">"cluster"</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>     <span class="dt">"nodes_flagged"</span><span class="fu">:</span> <span class="dv">6</span><span class="fu">,</span> <span class="dt">"nodes_in_group"</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span> <span class="dt">"severity"</span><span class="fu">:</span> <span class="st">"moderate"</span><span class="fu">,</span> <span class="dt">"since"</span><span class="fu">:</span> <span class="st">"since Tuesday"</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>     <span class="dt">"soil_water"</span><span class="fu">:</span> <span class="st">"none since Tuesday"</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"problem"</span><span class="fu">:</span> <span class="st">"equipment fault"</span><span class="fu">,</span> <span class="dt">"location"</span><span class="fu">:</span> <span class="st">"Block A, row 1"</span><span class="fu">,</span> <span class="dt">"pattern"</span><span class="fu">:</span> <span class="st">"one node"</span><span class="fu">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>     <span class="dt">"severity"</span><span class="fu">:</span> <span class="st">"moderate"</span><span class="fu">,</span> <span class="dt">"since"</span><span class="fu">:</span> <span class="st">"since Monday"</span><span class="fu">,</span> <span class="dt">"fault"</span><span class="fu">:</span> <span class="st">"missing data"</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"problem"</span><span class="fu">:</span> <span class="st">"water stress"</span><span class="fu">,</span> <span class="dt">"location"</span><span class="fu">:</span> <span class="st">"Block C, row 3"</span><span class="fu">,</span> <span class="dt">"pattern"</span><span class="fu">:</span> <span class="st">"one node"</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>     <span class="dt">"severity"</span><span class="fu">:</span> <span class="st">"early"</span><span class="fu">,</span> <span class="dt">"since"</span><span class="fu">:</span> <span class="st">"since today"</span><span class="fu">,</span> <span class="dt">"soil_water"</span><span class="fu">:</span> <span class="st">"arriving"</span><span class="fu">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<blockquote class="blockquote">
+<p>⚠️ Block B, drip line B2: most monitored plants have been short of water since Tuesday, and no water has reached their soil since then. Check the line today, from its start to the last plant.</p>
+<p>⚠️ Block A, row 1: the sensors at this plant have sent no data since Monday, so it is not monitored. Check the node’s power and connection.</p>
+<p>👀 Block C, row 3: a monitored plant has shown first signs of water stress since today, although its soil still gets water. Check the plant for heat damage or root problems.</p>
+</blockquote>
+</section>
+<section id="language" class="level3">
+<h3 class="anchored" data-anchor-id="language">Language</h3>
+<p>The farmers in the first task read Brazilian Portuguese. Small models are usually weaker in Portuguese than in English, so the baseline measures candidate models in Portuguese before any fine-tuning. Fine-tuning should help: it picks up style and vocabulary from little data, and regional farm vocabulary is that kind of target. If small models still fall short, a fixed template can carry the locations, markers and actions, and the model writes only the rest. The proof of concept uses English.</p>
+</section>
+<section id="hardware" class="level3">
+<h3 class="anchored" data-anchor-id="hardware">Hardware</h3>
+<p>The model runs with llama.cpp on the gateway, the board that collects the nodes’ data over LoRa radio. Two boards are candidates. <a href="https://mjrovai.com/articles/slm-edge-boards-compared/">Rovai compared both</a> with the same models and the same llama.cpp build:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>Raspberry Pi 5</th>
+<th>Arduino UNO Q</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CPU</td>
+<td>4 × Cortex-A76</td>
+<td>4 × Cortex-A53, plus an STM32 microcontroller</td>
+</tr>
+<tr class="even">
+<td>RAM</td>
+<td>8 GB</td>
+<td>4 GB</td>
+</tr>
+<tr class="odd">
+<td>Speed limited by</td>
+<td>memory bandwidth</td>
+<td>compute</td>
+</tr>
+<tr class="even">
+<td>Price, September 2026</td>
+<td>about $211 with cooler</td>
+<td>$79</td>
+</tr>
+</tbody>
+</table>
+<p>The UNO Q comes in a 2 GB and a 4 GB version. The <a href="https://store.arduino.cc/products/uno-q-4gb">4 GB version</a> (ABX00173) has 4 GB of LPDDR4 memory and 32 GB of eMMC storage, and costs €82.90 with VAT on the Arduino store in November 2026. The memory estimates in this section are for the 4 GB version.</p>
+<p>Messages are generated once a day per farm, so speed is not the main limit. On the UNO Q, Qwen3.5 2B generated 2.53 tokens per second, so a message of about 100 tokens takes under a minute. Memory sets the limit instead: by our estimate, about 4B parameters on the Pi 5 and about 2B on the UNO Q. The choice of board follows from the evaluation: the smallest model that meets the quality threshold decides the cheapest board that can run it. The fine-tuned Qwen3.5 0.8B passes every check in 264 of the 270 test messages and fits in the UNO Q’s memory, so the UNO Q is the target board.</p>
+<p>The fine-tuned model needs only the triage record and a one-line instruction, with no rules or examples. On the UNO Q, the A53 cores must process the whole prompt before they write the message. By our estimate, the untuned models’ prompt of about 1,300 tokens would take longer to process than the message takes to write. The run on the board will measure this.</p>
+<p>Sending a WhatsApp message needs a network connection, so a hosted model would often be reachable too. The case for a local model rests on the other reasons: data stays on the farm, there is no cost per message, energy use is low, nothing depends on a provider, and generation does not wait for the network, because the gateway can queue the message until the connection is back.</p>
+</section>
+</section>
+<section id="pipeline" class="level2">
+<h2 class="anchored" data-anchor-id="pipeline">Pipeline</h2>
+<p>Building a model for a task follows these stages:</p>
+<ol type="1">
+<li><strong>Synthetic triage inputs</strong>, sampled across the task’s dimensions, as the next section describes.</li>
+<li><strong>Teacher messages:</strong> a large model, Claude, writes the message for each input.</li>
+<li><strong>Baseline:</strong> candidate base models write messages for the test inputs before any fine-tuning.</li>
+<li><strong>Fine-tuning:</strong> LoRA adapters trained on pairs of inputs and messages. On Apple Silicon this uses MLX; on CUDA GPUs, tools such as unsloth do the same job. The fine-tuned model is prompted with the triage record and a one-line instruction: it learns the rules and the format from the examples.</li>
+<li><strong>Evaluation</strong> of the baseline and fine-tuned models on the same held-out test set.</li>
+<li><strong>Export:</strong> the adapter is fused into the base model and converted to GGUF, the single-file format that llama.cpp loads.</li>
+<li><strong>Deployment</strong> on the target board with llama.cpp, and a final evaluation there.</li>
+</ol>
+<p>Domain experts improve the data at stages 1, 2 and 5.</p>
+<p>Over time, the two kinds of model take different roles. A large model is the teacher during development, and handles new kinds of cases when a connection is available. The small model handles the repeated task in the field.</p>
+<section id="choice-of-teacher" class="level3">
+<h3 class="anchored" data-anchor-id="choice-of-teacher">Choice of teacher</h3>
+<p>Claude Haiku writes the teacher messages. Sonnet’s judgement of actions and urgency looked somewhat better on a first batch of ten inputs, at about three times the cost, so the first training set has a message from each model for each of its 200 inputs. The two models wrote the same message, word for word, for 73 of the 200 inputs, and their messages are 92% similar on average: the rules and examples leave little room for a model’s own judgement. A comparison of the two teachers would measure almost nothing, so the cheaper one, Haiku, is the teacher from now on, and the student trains on its messages.</p>
+<p>Each message records the model that wrote it, the temperature, the version of the prompt and the date, so that messages written with different prompts are never compared.</p>
+</section>
+</section>
+<section id="synthetic-data-generation" class="level2">
+<h2 class="anchored" data-anchor-id="synthetic-data-generation">Synthetic data generation</h2>
+<p>Synthetic inputs follow the method of <a href="https://fr.anckalbi.net/posts/synthetic-questions-maris/">synthetic questions for MARIS</a>: find the dimensions along which cases vary, give each a few levels, and sample combinations of levels, called tuples. Each tuple stands for a distinct case the model must handle. A few dimensions keep every tuple covered. Ten dimensions with a few levels each would give tens of thousands of tuples, most of them never sampled.</p>
+<p>The first task has three dimensions with three levels each, so 27 tuples:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dimension</th>
+<th>Levels</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Problem</td>
+<td>water stress, equipment fault, both</td>
+</tr>
+<tr class="even">
+<td>Spatial pattern</td>
+<td>one node, a cluster sharing a line or block, widespread</td>
+</tr>
+<tr class="odd">
+<td>Severity</td>
+<td>early, moderate, severe</td>
+</tr>
+</tbody>
+</table>
+<p>The levels mean different things for the two kinds of problem:</p>
+<ul>
+<li><strong>Spatial pattern.</strong> For water stress, one node points to a single plant or dripper, a cluster to a shared irrigation line, and widespread stress to the weather or the irrigation schedule. <code>soil_water</code> tells these apart: when water still arrives, the weather is the likelier cause. For equipment faults, one node points to that node, a cluster to what its nodes share, such as their power supply, and widespread faults to the gateway.</li>
+<li><strong>Severity.</strong> For water stress, it is the plant’s state: first signs (early), stress for several days (moderate), or a risk of damage (severe). For equipment faults, it is how long and how badly data is lost, whatever the spatial pattern: data missing for hours, implausible values or a changed camera view (early), no data for 1 to 3 days (moderate), or no data for more than 3 days (severe).</li>
+</ul>
+<p>A node that sends no readings cannot be flagged for water stress, as the triage contract below requires, because there is no data to detect stress from. So when a <code>both</code> record has a widespread pattern and a moderate or severe severity, the widespread item is the water stress, and the fault is a single node or a cluster. With this rule all 27 tuples are valid, and a widespread, severe fault is a farm left unmonitored for days.</p>
+<p>Other variation changes the details of a message but not its kind, so it is drawn at random within each tuple rather than made a dimension: farm size, how locations are named (blocks and rows, numbered plots, greenhouse benches), how long the problem has lasted, and the number of items.</p>
+<p>The test set has 10 inputs per tuple, 270 in total, and no test input is ever used for training. Training sets are sampled across all tuples, so scores can be broken down by tuple to show which cases a model gets wrong.</p>
+</section>
+<section id="triage-contract" class="level2">
+<h2 class="anchored" data-anchor-id="triage-contract">Triage contract</h2>
+<p>The proof of concept replaces the domain project’s triage with generated records, from <a href="../coffee.html"><code>01_coffee</code></a>. The generator is a mock, but every rule it follows to keep records consistent is also a requirement on the real triage. This section lists the fields and rules, so that the domain project and edgeslm agree on what the triage delivers. The generator is the executable form of this contract: its tests check every rule on every record of the test set.</p>
+<section id="fields" class="level3">
+<h3 class="anchored" data-anchor-id="fields">Fields</h3>
+<p>One record covers one farm and one day:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>farm</code>, <code>date</code></td>
+<td>The farm, and the day of the triage.</td>
+</tr>
+<tr class="even">
+<td><code>nodes</code></td>
+<td>The number of sensor nodes on the farm.</td>
+</tr>
+<tr class="odd">
+<td><code>items</code></td>
+<td>One entry per problem to watch or fix, most severe first.</td>
+</tr>
+</tbody>
+</table>
+<p>Each item has these fields:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>problem</code></td>
+<td><code>water stress</code> or <code>equipment fault</code>.</td>
+</tr>
+<tr class="even">
+<td><code>location</code></td>
+<td>A place the farmer knows: one node, a group of nodes on a shared irrigation line, or the whole farm.</td>
+</tr>
+<tr class="odd">
+<td><code>pattern</code></td>
+<td><code>one node</code>, <code>cluster</code> or <code>widespread</code>.</td>
+</tr>
+<tr class="even">
+<td><code>severity</code></td>
+<td><code>early</code>, <code>moderate</code> or <code>severe</code>, as defined under Synthetic data generation.</td>
+</tr>
+<tr class="odd">
+<td><code>since</code></td>
+<td>When the problem started, as a phrase the message can use as it is: since today, since yesterday, since a weekday within the past week, or for a week or more.</td>
+</tr>
+<tr class="even">
+<td><code>soil_water</code></td>
+<td>For water stress only: whether water still reaches the soil, from irrigation or rain. <code>arriving</code> means it does, so more water may not help. Otherwise a phrase such as <code>none since Tuesday</code> means the soil is drying, so water is not reaching the plants.</td>
+</tr>
+<tr class="odd">
+<td><code>fault</code></td>
+<td>For equipment faults only: what the data shows. <code>missing data</code> means a node sends nothing, <code>implausible values</code> means a sensor reports values no plant or weather could produce, such as a soil moisture drop too fast for uptake, and <code>camera view changed</code> means the thermal camera no longer sees the same leaves.</td>
+</tr>
+<tr class="even">
+<td><code>sensor</code></td>
+<td>For <code>implausible values</code> only: <code>soil moisture</code>, <code>thermal camera</code>, <code>air temperature</code> or <code>humidity</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>nodes_flagged</code>, <code>nodes_in_group</code></td>
+<td>For clusters and widespread items only: how many nodes of the group are flagged, out of how many.</td>
+</tr>
+<tr class="even">
+<td><a href="https://franckalbinet.github.io/edgeslm/coffee.html#amount"><code>amount</code></a></td>
+<td>For clusters and widespread items only: the word for the share of flagged nodes, which the message uses as it is: <code>all</code>, <code>almost all</code> (80% or more), <code>most</code> (more than half) or <code>some</code> (half or fewer).</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="rules" class="level3">
+<h3 class="anchored" data-anchor-id="rules">Rules</h3>
+<ul>
+<li><strong>Readable locations.</strong> Locations are names the farmer uses, such as a block and drip line, a row, a plot or a bench. They are never node IDs.</li>
+<li><strong>Groups follow irrigation.</strong> A cluster is a group of nodes on one irrigation line or valve, so that its action, such as checking the line, reaches all the plants it covers.</li>
+<li><strong>One location, one item.</strong> No two items point at the same node or group.</li>
+<li><strong>Most severe first.</strong> Items are sorted by severity, most severe first, so that the message can keep their order.</li>
+<li><strong>Aggregation.</strong> When one kind of problem flags more than 70% of the farm’s nodes, the triage reports one widespread item with one cause, not several local ones. The single nodes and clusters of one kind stay below that threshold.</li>
+<li><strong>No stress without data.</strong> A node that sends no readings is reported as a fault, and is never flagged for water stress.</li>
+<li><strong>Observed causes.</strong> A water stress item says through <code>soil_water</code> whether water reaches the soil, which the soil sensors show directly as a rise after irrigation or rain. The message gives the action at the level the data supports, such as checking the line, and never names a part that no sensor watches, such as a valve. An equipment fault item says through <code>fault</code> what the data shows, and <code>sensor</code> names the sensor when values are implausible. Its action says where to look, by pattern: one node, that node; several nodes, what they share, such as the gateway or the power supply.</li>
+<li><strong>No raw values.</strong> Weather, readings and engineered features stay inside the ML model. They reach the triage only through severity, <code>since</code>, <code>soil_water</code>, <code>fault</code> and <code>sensor</code>. Raw values in the triage would invite the SLM to reason about them, which is the code’s job.</li>
+</ul>
+<p>Some rules need more than sensor data. Readable locations need a map from each node to its place on the farm. Groups need the irrigation layout of each farm. <code>soil_water</code> needs no labels, because the soil sensors show whether water arrives: the <a href="https://fr.anckalbi.net/speaking-plants/batches/b02/diagnosis.html">batch 2 diagnosis</a> found that watering had stopped from the missing morning rise in soil moisture. Faults need no labels either: <code>fault</code> records what the data shows, and never a cause no sensor watches, such as an empty battery or a lost radio link. The node map and the irrigation layout are the main open questions for the design of the ML side.</p>
+</section>
+</section>
+<section id="domain-expert-annotators" class="level2">
+<h2 class="anchored" data-anchor-id="domain-expert-annotators">Domain expert annotators</h2>
+<p>Synthetic data and a teacher model are a start. Domain knowledge enters through experts, who:</p>
+<ul>
+<li>audit the dimensions and tuples, and say which cases are missing or unrealistic,</li>
+<li>review and edit synthetic messages: an edited message becomes better training data, and the difference from the draft shows where the teacher’s judgement is weak,</li>
+<li>do error analysis on model outputs, by writing a free-text note on what is wrong (open coding) and then grouping the notes into failure modes (axial coding),</li>
+<li>label outputs as pass or fail for each failure mode, to align the judges described under Evaluation,</li>
+<li>write messages for real cases, in the same format.</li>
+</ul>
+<p>Experts start from drafts rather than blank pages, which is faster and gives more consistent messages. For the first task, they must read and write Brazilian Portuguese.</p>
+<p>The dataset of expert-reviewed examples is the lasting artifact, not the model. Each model is rebuilt from a version of the dataset, so it is always possible to say whose expertise, from which version of the data, went into which model.</p>
+<p>A minimal annotation app, built with FastHTML and storing its data in SQLite, supports this work. It shows one triage input next to its message. The expert can edit the message, mark it as pass or fail, and write a note.</p>
+</section>
+<section id="evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation">Evaluation</h2>
+<p>Evaluation decides whether a model is good enough, and so which board it needs. Three rules hold throughout:</p>
+<ul>
+<li>every model, including the untuned base model, is scored on the same held-out test set,</li>
+<li>once expert-reviewed examples exist, the test set is weighted towards them, because synthetic data can train a model but should not be its final judge,</li>
+<li>final scores are measured on the target board.</li>
+</ul>
+<section id="checks-computed-by-code" class="level3">
+<h3 class="anchored" data-anchor-id="checks-computed-by-code">Checks computed by code</h3>
+<p>Some failure modes can be checked by comparing a message with its triage input, without any labels:</p>
+<ul>
+<li><strong>Format:</strong> every paragraph starts with a marker and a location, followed by a colon.</li>
+<li><strong>Coverage:</strong> every item in the input has its paragraph.</li>
+<li><strong>No invented items:</strong> every paragraph names a location from the input, and no location has two paragraphs.</li>
+<li><strong>Severity:</strong> each paragraph has the marker of its item’s severity, 👀, ⚠️ or 🚨.</li>
+<li><strong>No numbers:</strong> the message contains no digits outside its locations, so no readings, counts or dates. Numbers that are part of a location, such as row 3, are allowed.</li>
+<li><strong>Length:</strong> the message is at most 600 characters long.</li>
+<li><strong>Amount:</strong> each cluster or widespread item uses its record’s <a href="https://franckalbinet.github.io/edgeslm/coffee.html#amount"><code>amount</code></a> word.</li>
+</ul>
+</section>
+<section id="judges-for-the-other-failure-modes" class="level3">
+<h3 class="anchored" data-anchor-id="judges-for-the-other-failure-modes">Judges for the other failure modes</h3>
+<p>Other failure modes need judgement, such as whether the action fits what the triage reports. They follow the method of <a href="https://fr.anckalbi.net/posts/llm-as-a-judge/">LLM as a judge</a>:</p>
+<ol type="1">
+<li>Error analysis by experts finds the failure modes.</li>
+<li>Each failure mode gets its own judge, a large model that labels a message as pass or fail for that one failure mode.</li>
+<li>Expert labels are split into a training set (10 to 20%, for few-shot examples in the judge’s prompt), a development set (40 to 45%, to refine the prompt) and a test set (40 to 45%). No example moves between sets.</li>
+<li>On the test set, the judge’s true positive rate (TPR, the share of good messages it passes) and true negative rate (TNR, the share of bad messages it fails) are measured against the expert labels.</li>
+<li>The judge’s observed pass rate on new messages is corrected with the Rogan-Gladen formula, which needs TPR + TNR &gt; 1:</li>
+</ol>
+<p><span class="math display">\[\theta = \frac{\text{observed rate} + \text{TNR} - 1}{\text{TPR} + \text{TNR} - 1}\]</span></p>
+<ol start="6" type="1">
+<li>A bootstrap over the test set gives a 95% confidence interval for the corrected rate.</li>
+</ol>
+</section>
+</section>
+<section id="proof-of-concept" class="level2">
+<h2 class="anchored" data-anchor-id="proof-of-concept">Proof of concept</h2>
+<p>The proof of concept is for a meeting, and has four aims:</p>
+<ol type="1">
+<li>Explain the setup and why: the use case, and the problem it addresses.</li>
+<li>Show that an SLM can be fine-tuned for the task, and how much data it needs.</li>
+<li>Explain the role of domain experts: auditing and improving synthetic data, annotating new data, and error analysis for the judges.</li>
+<li>Show why AI at the edge suits this task: hosted LLM inference costs money and energy, farm data is sensitive, and the task needs only a small part of a large model’s expertise.</li>
+</ol>
+<p>It uses synthetic data only, in English. The expert phase is explained rather than run, and the annotation app shows how it would work. The steps:</p>
+<ol type="1">
+<li><strong>Schema and sampler:</strong> the triage JSON schema, the 27 tuples, and random variation within each.</li>
+<li><strong>Teacher messages:</strong> Claude Haiku writes the message for each sampled input, as described under Choice of teacher, and a sample is checked by hand.</li>
+<li><strong>Baseline:</strong> candidate base models of about 2B parameters or smaller, so that they run on the UNO Q, are scored on the 270 test inputs.</li>
+<li><strong>Metric:</strong> the checks computed by code. A breakdown by tuple is not done yet.</li>
+<li><strong>Fine-tuning:</strong> LoRA with MLX on Apple Silicon, trained on 50, 100 and 199 examples, where 199 is every Haiku message in the training set that passes the checks. The scores against the number of examples form a learning curve, which answers how much data the task needs. With 100 examples, both models pass every check in 255 or more of the 270 test messages, so the proof of concept does not train on larger sets.</li>
+<li><strong>Export and edge demo:</strong> the best model is converted to GGUF, run with llama.cpp, and handed to a colleague with an Arduino UNO Q, with example inputs, the prompt and the command, to measure speed and memory on the board.</li>
+<li><strong>Annotation app:</strong> the minimal FastHTML app, shown on a few synthetic examples.</li>
+<li><strong>Presentation</strong>, built from the results of steps 3 to 7.</li>
+</ol>
+</section>
+<section id="after-the-proof-of-concept" class="level2">
+<h2 class="anchored" data-anchor-id="after-the-proof-of-concept">After the proof of concept</h2>
+<p>The proof of concept makes one pass through the pipeline on synthetic data. The project then repeats the pipeline in rounds, on two tracks that run side by side: the triage track builds the input, and the message track builds the model that writes the message. The triage contract is the only interface between them.</p>
+<section id="the-triage-track" class="level3">
+<h3 class="anchored" data-anchor-id="the-triage-track">The triage track</h3>
+<p>The domain project keeps collecting sensor data on the farms and develops the triage: the features, the ML model, and the node map and irrigation layout listed as open questions under Triage contract. Until the real triage is ready, the generator in <a href="../coffee.html"><code>01_coffee</code></a> stands in for it. When it is ready, its records join the generated ones, first as test inputs and then as training inputs. A change to the contract, such as a new field or a new kind of fault, starts a new round on the message track.</p>
+</section>
+<section id="the-message-track" class="level3">
+<h3 class="anchored" data-anchor-id="the-message-track">The message track</h3>
+<p>Each round on the message track has these steps:</p>
+<ol type="1">
+<li><strong>Inputs:</strong> synthetic triage records, and real ones as the triage produces them. Experts audit the dimensions and tuples and name the missing cases.</li>
+<li><strong>Messages:</strong> the teacher drafts a message for each input. Experts review and edit a sample in the annotation app, and their edited messages replace the drafts in the training set.</li>
+<li><strong>Fine-tuning:</strong> the small model is trained on the current version of the dataset.</li>
+<li><strong>Evaluation:</strong> the code checks run on every message. Experts annotate a sample of the small model’s messages, first with free-text notes and then with a pass or fail for each failure mode, as described under Domain expert annotators. Once there are enough expert labels, an LLM judge for each failure mode, aligned on those labels, scores the failure modes that code cannot check.</li>
+<li><strong>Deployment:</strong> the model is exported to GGUF, scored again on the board, and installed on the gateways.</li>
+<li><strong>Field review:</strong> experts review a sample of the messages written on real farms, and those cases enter the next round.</li>
+</ol>
+<p>Each round ends with a new version of the dataset and the model built from it. Failure modes found in error analysis become new code checks or judges, and missing cases become new tuples.</p>
+</section>
+</section>
+<section id="terms" class="level2">
+<h2 class="anchored" data-anchor-id="terms">Terms</h2>
+<ul>
+<li><strong>SLM:</strong> small language model, here with up to about 4 billion parameters.</li>
+<li><strong>LoRA:</strong> Low-Rank Adaptation, a fine-tuning method that trains small adapter matrices next to the frozen weights of a model. Not to be confused with <strong>LoRa</strong>, the long-range radio that links the nodes to the gateway. In code, we avoid a bare <code>lora</code> name.</li>
+<li><strong>GGUF:</strong> the single-file model format of llama.cpp, holding the weights, usually quantized, with the tokenizer and metadata.</li>
+<li><strong>Node:</strong> a sensor station on one plant, which stands for the plants around it. Only some plants carry one.</li>
+<li><strong>Triage:</strong> the output of the domain code, listing the nodes to watch or fix for one farm and one day.</li>
+<li><strong>Tuple:</strong> one combination of levels, one from each dimension.</li>
+<li><strong>Teacher:</strong> the large model that writes reference messages.</li>
+<li><strong>Failure mode:</strong> one specific way a message can be wrong, found by error analysis.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const cellDetails = window.document.querySelectorAll(".cell details.code-fold");
+        for (let i=0; i<cellDetails.length; i++) {
+          const details = cellDetails[i];
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell div.sourceCode.cell-code");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/franckalbinet\.github\.io\/edgeslm");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/franckalbinet/edgeslm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
