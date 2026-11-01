@@ -129,9 +129,10 @@ async def teach(
     rec:dict, # Triage record
     model:str=MODEL, # Teacher model
     temp:float=TEMP, # Sampling temperature
+    note:str='', # Added after the record, such as the mistakes of a previous attempt
 )->dict: # The message, with the model, temperature, prompt version and date that produced it
     "Have the teacher write the message for `rec`"
     chat = AsyncChat(model, sp=system_prompt(), temp=temp, cache=True, cache_idxs=[0])
-    r = await chat(user_prompt(rec), max_tokens=600)
+    r = await chat(user_prompt(rec) + (f'\n\n{note}' if note else ''), max_tokens=600)
     return dict(message=''.join(p.text for p in contents(r).content), model=model, temp=temp,
                 prompt=prompt_version(), date=datetime.now(timezone.utc).isoformat(timespec='seconds'))
