@@ -18,6 +18,7 @@ classifiers = [
 dependencies = [
     "mlx-lm>=0.32.2",
     "python-fastllm>=0.0.66",
+    "httpx",
 ]
 
 [project.urls]

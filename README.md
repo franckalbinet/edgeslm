@@ -40,7 +40,7 @@ The project is building a proof of concept for the first task. The scope, the sy
 
 The [baseline](https://franckalbinet.github.io/edgeslm/baseline.html) and [fine-tuning](https://franckalbinet.github.io/edgeslm/finetune.html) experiments compare Qwen3.5 0.8B and 2B on 270 test records. Untuned, with rules and two examples in the prompt, they write messages that pass every check for 123 and 70 records. Fine-tuned on 100 examples, with a one-line prompt, both pass for 255 or more. The 0.8B fine-tuned on 199 examples passes for 264.
 
-The next step is to convert the fine-tuned 0.8B to GGUF and run it with llama.cpp on an Arduino UNO Q, to measure speed, memory and quality on the board.
+The fine-tuned 0.8B is [exported](https://franckalbinet.github.io/edgeslm/export.html) to GGUF for llama.cpp. At 4 bits the file is 542 MB and still passes for 264 of the 270 records. The next step is to run it on an Arduino UNO Q and measure speed, memory and quality on the board. [Running on the UNO Q](https://franckalbinet.github.io/edgeslm/export.html#running-on-the-uno-q) gives the steps for the colleague with the board.
 
 ## Install
 

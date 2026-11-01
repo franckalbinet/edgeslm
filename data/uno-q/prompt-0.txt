@@ -1,0 +1,9 @@
+<|im_start|>system
+Write the WhatsApp message for this triage record.<|im_end|>
+<|im_start|>user
+{"farm": "Sítio Santa Luzia", "date": "2026-05-03", "nodes": 8, "items": [{"problem": "equipment fault", "location": "Bench 1", "pattern": "cluster", "severity": "severe", "since": "for a week or more", "fault": "missing data", "nodes_flagged": 3, "nodes_in_group": 4, "amount": "most"}, {"problem": "water stress", "location": "Bench 2, plant 4", "pattern": "one node", "severity": "severe", "since": "for a week or more", "soil_water": "arriving"}]}<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+

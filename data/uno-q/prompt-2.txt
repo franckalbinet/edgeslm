@@ -1,0 +1,9 @@
+<|im_start|>system
+Write the WhatsApp message for this triage record.<|im_end|>
+<|im_start|>user
+{"farm": "Sítio Recanto", "date": "2026-08-14", "nodes": 47, "items": [{"problem": "equipment fault", "location": "Plot 4, row 17", "pattern": "one node", "severity": "severe", "since": "for a week or more", "fault": "missing data"}, {"problem": "equipment fault", "location": "Plot 5", "pattern": "cluster", "severity": "early", "since": "since today", "fault": "missing data", "nodes_flagged": 2, "nodes_in_group": 9, "amount": "some"}]}<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+

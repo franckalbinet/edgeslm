@@ -1,0 +1,3 @@
+⚠️ Whole farm: almost all monitored plants have shown water stress since Saturday, although their soil still gets water. The heat is the cause. Lengthen or run irrigation more often.
+
+⚠️ Plot 4, row 19: the sensors at this plant have sent no data since Sunday, so it is not monitored. Check the node's power and connection.

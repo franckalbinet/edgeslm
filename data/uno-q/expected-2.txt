@@ -1,0 +1,3 @@
+🚨 Plot 4, row 17: the sensors at this plant have sent no data for a week or more, so it is not monitored. Check the node's power and connection today.
+
+👀 Plot 5: some sensors on this plot have sent no data since today. Check the power supply their nodes share.

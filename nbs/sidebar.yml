@@ -17,3 +17,4 @@ website:
         contents:
           - 05_baseline.ipynb
           - 06_finetune.ipynb
+          - 07_export.ipynb

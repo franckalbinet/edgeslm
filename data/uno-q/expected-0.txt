@@ -1,0 +1,3 @@
+🚨 Bench 1: most sensors on this bench have sent no data for a week or more, so the plants they cover are not monitored. Check the power supply that serves this bench today.
+
+🚨 Bench 2, plant 4: a monitored plant has shown water stress for a week or more, although its soil still gets water. Check the plant for heat damage, pests or root problems today.
