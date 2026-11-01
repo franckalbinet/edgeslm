@@ -10,12 +10,12 @@ __all__ = ['TEACHER', 'SHORT_PROMPT', 'teacher_rows', 'chat_row', 'write_mlx_dat
 # %% ../nbs/06_finetune.ipynb #b99c4453
 import json, math, random, subprocess, sys
 from pathlib import Path
-from .teacher import user_prompt
+from .teacher import user_prompt, MODEL
 from .dataset import read_jsonl, write_jsonl
 from .baseline import run_model
 
 # %% ../nbs/06_finetune.ipynb #dad5c759
-TEACHER = 'claude-haiku-4-5'
+TEACHER = MODEL
 
 # %% ../nbs/06_finetune.ipynb #016405b1
 def teacher_rows(

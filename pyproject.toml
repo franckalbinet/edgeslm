@@ -21,6 +21,14 @@ dependencies = [
     "httpx",
 ]
 
+[project.optional-dependencies]
+export = [
+    "torch",
+    "safetensors",
+    "transformers",
+    "huggingface_hub",
+]
+
 [project.urls]
 Repository = "https://github.com/franckalbinet/edgeslm"
 Documentation = "https://franckalbinet.github.io/edgeslm/"
