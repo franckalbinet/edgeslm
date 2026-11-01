@@ -24,7 +24,7 @@ triage(dict(problem='water stress', pattern='cluster', severity='moderate'), ran
        'location': 'Block B, drip line B1',
        'pattern': 'cluster',
        'severity': 'moderate',
-       'since': '2026-05-15',
+       'since': 'since Friday',
        'likely_cause': 'blocked or leaking irrigation line',
        'nodes_flagged': 6,
        'nodes_in_group': 7}]}

@@ -10,8 +10,11 @@ d = { 'settings': { 'branch': 'main',
             'edgeslm.coffee': { 'edgeslm.coffee._flagged': ('coffee.html#_flagged', 'edgeslm/coffee.py'),
                                 'edgeslm.coffee._free': ('coffee.html#_free', 'edgeslm/coffee.py'),
                                 'edgeslm.coffee._item': ('coffee.html#_item', 'edgeslm/coffee.py'),
+                                'edgeslm.coffee._since': ('coffee.html#_since', 'edgeslm/coffee.py'),
                                 'edgeslm.coffee._wide': ('coffee.html#_wide', 'edgeslm/coffee.py'),
                                 'edgeslm.coffee.layout': ('coffee.html#layout', 'edgeslm/coffee.py'),
                                 'edgeslm.coffee.triage': ('coffee.html#triage', 'edgeslm/coffee.py')},
             'edgeslm.synth': { 'edgeslm.synth.sample': ('synth.html#sample', 'edgeslm/synth.py'),
-                               'edgeslm.synth.tuples': ('synth.html#tuples', 'edgeslm/synth.py')}}}
+                               'edgeslm.synth.tuples': ('synth.html#tuples', 'edgeslm/synth.py')},
+            'edgeslm.teacher': { 'edgeslm.teacher.system_prompt': ('teacher.html#system_prompt', 'edgeslm/teacher.py'),
+                                 'edgeslm.teacher.user_prompt': ('teacher.html#user_prompt', 'edgeslm/teacher.py')}}}
