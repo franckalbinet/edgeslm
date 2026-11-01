@@ -13,18 +13,17 @@ import json
 from fastllm.chat import AsyncChat, contents
 import hashlib
 from datetime import datetime, timezone
-from .checks import AMOUNT_RULE
 
 # %% ../nbs/03_teacher.ipynb #3d4c1320
 CONTEXT = """You write short WhatsApp messages to coffee farmers. Each message turns one triage record into actions. The record comes from monitoring code, which has already decided which problems matter, how severe they are, and what the data shows about their cause. Only some plants carry a sensor, and each sensor stands for the plants around it."""
 
-RULES = f"""- Write one paragraph per item, in the record's order.
+RULES = """- Write one paragraph per item, in the record's order.
 - Start each paragraph with the item's marker (👀 early, ⚠️ moderate, 🚨 severe), then its location exactly as written in the record, then a colon.
 - After the colon, say in plain words what is wrong and when it started, then what to do. Say only what the record reports, and never name a cause or a part it does not report, such as a valve, a battery or a radio link. Never write likely, may, might or probably.
 - Say when the problem started with the record's `since` phrase, as it is. When `soil_water` has the same phrase, say it once, such as "have had no water and shown water stress for a week or more".
 - After the location, refer to it with words such as "this line", "this plot" or "this plant". Never repeat the location or part of it.
 - Write no digits outside the locations: no readings, counts or dates. Speak of monitored plants. For a single node, say "a monitored plant" or "this plant".
-- Every cluster or widespread item needs an amount word, from `nodes_flagged` out of `nodes_in_group`: {AMOUNT_RULE}. For example, 2 of 2 is all, 7 of 8 is almost all, 2 of 3 is most, and 3 of 6 is some. Write the amount word even when it is all.
+- Every cluster or widespread item has an `amount` word: all, almost all, most or some. Use it as it is, even when it is all, as in "all monitored plants on this line".
 - For water stress, `soil_water` says whether water still reaches the soil. When it is `none` with a phrase, say that no water has reached the soil since then, and point to the irrigation where the pattern does: whether water reaches this plant for one node, the line from its start to the last plant for a cluster, the irrigation schedule and the water supply for the whole farm.
 - When `soil_water` is `arriving`, say that the soil still gets water. For one node or a cluster, suggest checking the plants for heat damage, pests or root problems. For the whole farm, the heat is the cause, so suggest longer or more frequent irrigation.
 - For equipment faults, `fault` says what the data shows. For `missing data`, say that the sensors have sent no data and that the plants they cover are not monitored. For `implausible values`, say that the `sensor` gives values that look wrong. For `camera view changed`, say that the camera no longer sees the plant's leaves.
@@ -35,7 +34,7 @@ RULES = f"""- Write one paragraph per item, in the record's order.
 
 # %% ../nbs/03_teacher.ipynb #06f23b2f
 EXAMPLES = [
-    dict(record={"farm": "Sítio Recanto", "date": "2026-07-23", "nodes": 40, "items": [{"problem": "water stress", "location": "Block F, drip line F2", "pattern": "cluster", "severity": "early", "since": "since yesterday", "soil_water": "none since Tuesday", "nodes_flagged": 3, "nodes_in_group": 6}, {"problem": "water stress", "location": "Block C, drip line C3", "pattern": "cluster", "severity": "early", "since": "since today", "soil_water": "none since yesterday", "nodes_flagged": 7, "nodes_in_group": 7}]},
+    dict(record={"farm": "Sítio Recanto", "date": "2026-07-23", "nodes": 40, "items": [{"problem": "water stress", "location": "Block F, drip line F2", "pattern": "cluster", "severity": "early", "since": "since yesterday", "soil_water": "none since Tuesday", "nodes_flagged": 3, "nodes_in_group": 6, "amount": "some"}, {"problem": "water stress", "location": "Block C, drip line C3", "pattern": "cluster", "severity": "early", "since": "since today", "soil_water": "none since yesterday", "nodes_flagged": 7, "nodes_in_group": 7, "amount": "all"}]},
          message='''👀 Block F, drip line F2: some monitored plants on this line have shown first signs of water stress since yesterday, and no water has reached their soil since Tuesday. Check the line from its start to the last plant.
 
 👀 Block C, drip line C3: all monitored plants on this line have shown first signs of water stress since today, and no water has reached their soil since yesterday. Check that the line delivers water when irrigation runs.'''),
@@ -43,15 +42,15 @@ EXAMPLES = [
          message='''🚨 Plot 3, row 7: the sensors at this plant have sent no data since Tuesday, so it is not monitored. Check the node's power and connection today.
 
 ⚠️ Plot 1, row 1: a monitored plant has shown water stress since Thursday, although its soil still gets water. Check the plant for heat damage, pests or root problems.'''),
-    dict(record={"farm": "Sítio Recanto", "date": "2026-08-04", "nodes": 6, "items": [{"problem": "equipment fault", "location": "whole farm", "pattern": "widespread", "severity": "severe", "since": "since Thursday", "fault": "missing data", "nodes_flagged": 6, "nodes_in_group": 6}]},
+    dict(record={"farm": "Sítio Recanto", "date": "2026-08-04", "nodes": 6, "items": [{"problem": "equipment fault", "location": "whole farm", "pattern": "widespread", "severity": "severe", "since": "since Thursday", "fault": "missing data", "nodes_flagged": 6, "nodes_in_group": 6, "amount": "all"}]},
          message='''🚨 Whole farm: all sensors have sent no data since Thursday, so the farm is not monitored. Check the gateway and its power supply today.'''),
     dict(record={"farm": "Fazenda Cachoeira", "date": "2026-08-03", "nodes": 25, "items": [{"problem": "equipment fault", "location": "Plot 1, row 2", "pattern": "one node", "severity": "early", "since": "since today", "fault": "implausible values", "sensor": "soil moisture"}]},
          message='''👀 Plot 1, row 2: the soil moisture sensor at this plant has given values that look wrong since today. Check that it sits firmly in the soil and is not damaged.'''),
-    dict(record={"farm": "Sítio Bela Vista", "date": "2026-05-19", "nodes": 47, "items": [{"problem": "water stress", "location": "Block C, row 4", "pattern": "one node", "severity": "early", "since": "since today", "soil_water": "none since Sunday"}, {"problem": "water stress", "location": "Block D, drip line D3", "pattern": "cluster", "severity": "early", "since": "since today", "soil_water": "arriving", "nodes_flagged": 6, "nodes_in_group": 7}]},
+    dict(record={"farm": "Sítio Bela Vista", "date": "2026-05-19", "nodes": 47, "items": [{"problem": "water stress", "location": "Block C, row 4", "pattern": "one node", "severity": "early", "since": "since today", "soil_water": "none since Sunday"}, {"problem": "water stress", "location": "Block D, drip line D3", "pattern": "cluster", "severity": "early", "since": "since today", "soil_water": "arriving", "nodes_flagged": 6, "nodes_in_group": 7, "amount": "almost all"}]},
          message='''👀 Block C, row 4: a monitored plant has shown first signs of water stress since today, and no water has reached its soil since Sunday. Check that water reaches this plant when irrigation runs.
 
 👀 Block D, drip line D3: almost all monitored plants on this line have shown first signs of water stress since today, although their soil still gets water. Check the plants for heat damage, pests or root problems.'''),
-    dict(record={"farm": "Fazenda São João", "date": "2026-08-17", "nodes": 18, "items": [{"problem": "water stress", "location": "whole farm", "pattern": "widespread", "severity": "early", "since": "since today", "soil_water": "none since Saturday", "nodes_flagged": 17, "nodes_in_group": 18}, {"problem": "equipment fault", "location": "Block D, row 24", "pattern": "one node", "severity": "early", "since": "since today", "fault": "camera view changed"}]},
+    dict(record={"farm": "Fazenda São João", "date": "2026-08-17", "nodes": 18, "items": [{"problem": "water stress", "location": "whole farm", "pattern": "widespread", "severity": "early", "since": "since today", "soil_water": "none since Saturday", "nodes_flagged": 17, "nodes_in_group": 18, "amount": "almost all"}, {"problem": "equipment fault", "location": "Block D, row 24", "pattern": "one node", "severity": "early", "since": "since today", "fault": "camera view changed"}]},
          message='''👀 Whole farm: almost all monitored plants have shown first signs of water stress since today, and no water has reached their soil since Saturday. Check that irrigation runs as scheduled and that the water supply works.
 
 👀 Block D, row 24: the camera at this plant has not seen its leaves since today. Check that it points at the plant and that nothing blocks its view.''')]
@@ -77,7 +76,7 @@ FAILURES = [
     dict(name='repeated-location', checks=(), what='The location, or part of it, repeated after the colon.', fix='Refer to it as this line, this plot, this plant.'),
     dict(name='hedging', checks=(), what='Likely, probably, may, might, possibly, it seems, about the problem or its cause.', fix='The code has decided. State the problem and its cause plainly.'),
     dict(name='vague-action', checks=(), what='No action, or one that does not follow from what the record reports.', fix='One concrete place to look, such as along the line when no water reaches the soil of a cluster.'),
-    dict(name='wrong-amount', checks=('amount',), what='An amount word that does not match the share of flagged sensors.', fix=f'Use {AMOUNT_RULE}.'),
+    dict(name='wrong-amount', checks=('amount',), what="An amount word other than the record's `amount`, or none.", fix="Use the record's `amount` word as it is."),
     dict(name='wrong-tone', checks=(), what='Alarm for an early sign, or calm for a severe one.', fix='Match the urgency to the marker: say "today" for severe items.'),
     dict(name='too-long', checks=('length',), what='A message of more than 600 characters.', fix='One or two short sentences per item.'),
     dict(name='invented-cause', checks=(), what='A cause or part the record does not report, such as a stuck valve, an empty battery or a lost radio link.', fix='Say what the record reports, and where to look, never what broke.')]

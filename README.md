@@ -27,7 +27,8 @@ triage(dict(problem='water stress', pattern='cluster', severity='moderate'), ran
        'since': 'since Friday',
        'soil_water': 'arriving',
        'nodes_flagged': 6,
-       'nodes_in_group': 7}]}
+       'nodes_in_group': 7,
+       'amount': 'almost all'}]}
 
 A message for this record could read:
 
