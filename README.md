@@ -9,7 +9,7 @@ The pipeline is domain-neutral: a task is defined by data, namely its input form
 
 ## The first task
 
-The first task comes from [speaking-plants](https://fr.anckalbi.net/speaking-plants/), which detects water stress in coffee plants with sensor nodes. Each day, code in the domain project produces a *triage* for each farm: which nodes to watch or fix, how severe each problem is, and its likely cause. The SLM turns the triage into a short WhatsApp message for the farmer, with an action for each problem.
+The first task comes from [speaking-plants](https://fr.anckalbi.net/speaking-plants/), which detects water stress in coffee plants with sensor nodes. Each day, code in the domain project produces a *triage* for each farm: which nodes to watch or fix, how severe each problem is, and what the data shows about its cause, such as whether water still reaches the soil. The SLM turns the triage into a short WhatsApp message for the farmer, with an action for each problem.
 
 The real triage does not exist yet, so [`coffee`](https://franckalbinet.github.io/edgeslm/coffee.html) generates synthetic records that follow the triage contract in the scope, using the tuple sampler in [`synth`](https://franckalbinet.github.io/edgeslm/synth.html). Here is one record:
 
@@ -25,13 +25,13 @@ triage(dict(problem='water stress', pattern='cluster', severity='moderate'), ran
        'pattern': 'cluster',
        'severity': 'moderate',
        'since': 'since Friday',
-       'likely_cause': 'blocked or leaking irrigation line',
+       'soil_water': 'arriving',
        'nodes_flagged': 6,
        'nodes_in_group': 7}]}
 
 A message for this record could read:
 
-> ⚠️ Block B, drip line B1: most monitored plants have been short of water since Friday. Check the line today for a blockage or leak.
+> ⚠️ Block B, drip line B1: almost all monitored plants have shown water stress since Friday, although their soil still gets water. Check the plants on this line for heat damage or root problems.
 
 ## Status
 
