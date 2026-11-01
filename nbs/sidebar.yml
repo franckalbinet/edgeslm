@@ -10,3 +10,10 @@ website:
         contents:
           - 00_synth.ipynb
           - 01_coffee.ipynb
+          - 02_checks.ipynb
+          - 03_teacher.ipynb
+          - 04_dataset.ipynb
+      - section: "Experiments"
+        contents:
+          - 05_baseline.ipynb
+          - 06_finetune.ipynb
