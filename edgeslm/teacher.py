@@ -122,9 +122,10 @@ def prompt_version()->str:
     "A short hash of the system prompt, which changes whenever the prompt does"
     return hashlib.sha256(system_prompt().encode()).hexdigest()[:12]
 
-# %% ../nbs/03_teacher.ipynb #6c3b62b5
+# %% ../nbs/03_teacher.ipynb #e1d93552
 MODEL, TEMP = 'claude-haiku-4-5', 0.3
 
+# %% ../nbs/03_teacher.ipynb #6c3b62b5
 async def teach(
     rec:dict, # Triage record
     model:str=MODEL, # Teacher model

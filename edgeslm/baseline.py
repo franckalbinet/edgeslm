@@ -16,9 +16,10 @@ from .teacher import CONTEXT, RULES, EXAMPLES, user_prompt
 from .checks import check, parse
 from .dataset import read_jsonl, write_jsonl
 
-# %% ../nbs/05_baseline.ipynb #94096c60
+# %% ../nbs/05_baseline.ipynb #5baaa488
 STUDENT_EXAMPLES = [EXAMPLES[1], EXAMPLES[4]]
 
+# %% ../nbs/05_baseline.ipynb #94096c60
 def student_prompt()->str:
     "The short system prompt for small models: context, rules and two worked examples"
     exs = '\n\n'.join(f"Record:\n{json.dumps(e['record'], ensure_ascii=False)}\n\nMessage:\n{e['message']}" for e in STUDENT_EXAMPLES)

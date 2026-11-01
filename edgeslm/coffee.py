@@ -43,9 +43,10 @@ SENSORS = ['soil moisture', 'thermal camera', 'air temperature', 'humidity']
 ONSET = {('water stress', 'early'): (0, 1), ('water stress', 'moderate'): (2, 4), ('water stress', 'severe'): (4, 8),
          ('equipment fault', 'early'): (0, 1), ('equipment fault', 'moderate'): (1, 3), ('equipment fault', 'severe'): (4, 10)}
 
-# %% ../nbs/01_coffee.ipynb #16ddec72
+# %% ../nbs/01_coffee.ipynb #4d666bf9
 WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+# %% ../nbs/01_coffee.ipynb #16ddec72
 def _since(day, days):
     "When a problem started, `days` before `day`, as a phrase for the message"
     if days == 0: return 'since today'

@@ -14,9 +14,10 @@ from .teacher import user_prompt
 from .dataset import read_jsonl, write_jsonl
 from .baseline import run_model
 
-# %% ../nbs/06_finetune.ipynb #016405b1
+# %% ../nbs/06_finetune.ipynb #dad5c759
 TEACHER = 'claude-haiku-4-5'
 
+# %% ../nbs/06_finetune.ipynb #016405b1
 def teacher_rows(
     rows:list, # Labelled rows from `label_all`
     seed:int=0, # Seed of the fixed order
@@ -26,9 +27,10 @@ def teacher_rows(
     random.Random(seed).shuffle(keep)
     return keep
 
-# %% ../nbs/06_finetune.ipynb #db8ca77c
+# %% ../nbs/06_finetune.ipynb #cdb4f37d
 SHORT_PROMPT = 'Write the WhatsApp message for this triage record.'
 
+# %% ../nbs/06_finetune.ipynb #db8ca77c
 def chat_row(row:dict)->dict:
     "A labelled row as an mlx-lm chat example"
     return dict(messages=[dict(role='system', content=SHORT_PROMPT), dict(role='user', content=user_prompt(row['record'])),

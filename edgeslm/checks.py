@@ -10,8 +10,10 @@ __all__ = ['MARKERS', 'MAX_LEN', 'parse', 'check']
 # %% ../nbs/02_checks.ipynb #ef706fb3
 import re
 
-# %% ../nbs/02_checks.ipynb #dae95eb6
+# %% ../nbs/02_checks.ipynb #4de48522
 MARKERS = dict(early='👀', moderate='⚠️', severe='🚨')
+
+# %% ../nbs/02_checks.ipynb #dae95eb6
 _item_re = re.compile(r'(👀|⚠️|🚨)\s*([^:\n]+?)\s*:\s*(.+)', re.S)
 
 def parse(
@@ -22,9 +24,10 @@ def parse(
     paras = [p.strip() for p in re.split(r'\n\s*\n', msg.strip()) if p.strip()]
     return [m.groups() if (m := _item_re.fullmatch(p)) else None for p in paras]
 
-# %% ../nbs/02_checks.ipynb #e8e2d4ea
+# %% ../nbs/02_checks.ipynb #32694c10
 MAX_LEN = 600
 
+# %% ../nbs/02_checks.ipynb #e8e2d4ea
 def _said_amount(text):
     "The first amount word in `text`, or `None`"
     m = re.search(r'\b(almost all|all|most|some)\b', text, re.I)
