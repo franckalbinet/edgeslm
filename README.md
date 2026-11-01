@@ -31,8 +31,7 @@ triage(dict(problem='water stress', pattern='cluster', severity='moderate'), ran
 
 A message for this record could read:
 
-> ⚠️ *Block B: most monitored plants on drip line B1 have been short of water since Friday.*
-> 👉 Check line B1 today for a blockage or leak.
+> ⚠️ Block B, drip line B1: most monitored plants have been short of water since Friday. Check the line today for a blockage or leak.
 
 ## Status
 
